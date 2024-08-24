@@ -28,7 +28,7 @@ reve_time_night="$reve_folder/time_night"
 
 reve_chores_mode="$rt_script_dir/chores/mode"
 
-source "$rt_script_dir/_reve.sh"
+source "$rt_script_dir/_reve"
 
 util_help () {
     echo "Usage: $0 [options]"
@@ -80,7 +80,7 @@ set_desktop_mode () {
     fi
 
     local current_mode="unset"
-    local previous_mode, day_start, night_start, num_day, num_night, current_time
+    local previous_mode day_start night_start num_day num_night current_time
     previous_mode=$( util_readf "$reve_desktop_mode" )
     day_start=$( util_readf "$reve_time_day" )
     night_start=$( util_readf "$reve_time_night" )
@@ -151,7 +151,7 @@ while true; do
             shift 2
             ;;
         -w|--where)
-            which reve
+            dirname "$( which reve )"
             exit 0
             ;;
         --shell-completion)
