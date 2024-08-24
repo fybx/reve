@@ -7,8 +7,8 @@ in_desktop_mode=""
 in_reason=""
 in_chore_name=""
 
-SHORTOPTS="h,m:r:c:"
-LONGOPTS="help,mode:,reason:,chore:"
+SHORTOPTS="h,m:r:c:w,"
+LONGOPTS="help,mode:,reason:,chore:,where"
 
 PARSED_OPTS=$(getopt --options $SHORTOPTS --longoptions $LONGOPTS --name "$0" -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -18,7 +18,7 @@ fi
 
 eval set -- "$PARSED_OPTS"
 
-rt_script_dir=$(realpath "$(dirname $0)")
+rt_script_dir=$(realpath "$(dirname "$0")")
 rt_has_mode_changed=0
 
 reve_folder="$HOME/.config/reve"
@@ -28,27 +28,19 @@ reve_time_night="$reve_folder/time_night"
 
 reve_chores_mode="$rt_script_dir/chores/mode"
 
+source "$rt_script_dir/_reve.sh"
+
 util_help () {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "desktop_mode  (-m, --mode):   dark, light"
     echo "reason        (-r, --reason): time, network"
     echo "chore         (-c, --chore):  chore_name"
-}
-
-util_readf () {
-    local filename=$1
-
-    if [[ -f "$filename" ]]; then
-        cat "$filename"
-    else
-        echo "[reve] [E] util_readf: File not found: $filename" >&2
-        return 1
-    fi
+    echo "where         (-w, --where):  returns where reve's installed"
 }
 
 util_mkdirs () {
-    mkdir -p $reve_folder
+    mkdir -p "$reve_folder"
 }
 
 util_run_single_chore () {
@@ -61,20 +53,40 @@ util_run_single_chore () {
     fi
 }
 
+f_shell_completion () {
+    if [ "$in_shell_comp" == "fish" ]; then
+        cp "$rt_script_dir/completions/reve.fish" "$HOME/.config/fish/completions/reve.fish"
+    elif [ "$in_shell_comp" == "bash" ]; then
+        _reve_completions=$( util_readf "$rt_script_dir/completions/reve.bash" )
+
+        if [ ! -f "$HOME/.bash_completion" ]; then
+            touch "$HOME/.bash_completion"
+        fi
+
+        if ! grep -q "_reve_completions" "$HOME/.bash_completion"; then
+            echo "$_reve_completions" >> "$HOME/.bash_completion"
+        fi
+
+        if [ -n "$BASH_SOURCE" ]; then
+            source "$HOME/.bash_completion"
+        fi
+    fi
+}
+
 set_desktop_mode () {
-    if [[ -n "$forced_mode" ]]; then
-        echo $forced_mode > $reve_desktop_mode
+    if [[ -n "$in_desktop_mode" ]]; then
+        echo "$in_desktop_mode" > "$reve_desktop_mode"
         return 1 # since mode has changed
     fi
 
     local current_mode="unset"
-    local previous_mode=$( util_readf $reve_desktop_mode )
-    local day_start=$( util_readf $reve_time_day )
-    local night_start=$( util_readf $reve_time_night )
-
-    local num_day=$( awk -F: '{print $1 * 60 + $2}' <<< "$day_start" )
-    local num_night=$( awk -F: '{print $1 * 60 + $2}' <<< "$night_start" )
-    local current_time=$( awk -F: '{print $1 * 60 + $2}' <<< "$(date +%H:%M)" )
+    local previous_mode, day_start, night_start, num_day, num_night, current_time
+    previous_mode=$( util_readf "$reve_desktop_mode" )
+    day_start=$( util_readf "$reve_time_day" )
+    night_start=$( util_readf "$reve_time_night" )
+    num_day=$( awk -F: '{print $1 * 60 + $2}' <<< "$day_start" )
+    num_night=$( awk -F: '{print $1 * 60 + $2}' <<< "$night_start" )
+    current_time=$( awk -F: '{print $1 * 60 + $2}' <<< "$(date +%H:%M)" )
 
     if ((num_night > current_time && current_time >= num_day)); then
         current_mode="light"
@@ -83,7 +95,7 @@ set_desktop_mode () {
     fi
 
     echo "[reve] [I] Setting the mode: $current_mode"
-    echo "$current_mode" > $reve_desktop_mode
+    echo "$current_mode" > "$reve_desktop_mode"
 
     if [ "$current_mode" == "$previous_mode" ]; then
         return 0 # since mode did not change
@@ -101,19 +113,17 @@ prepare () {
 # Called when the mode (the default state, is either dark or light) changes
 chores_mode () {
     for file in "$reve_chores_mode"/*; do
-        if [ "$item" != "$reve_chores_mode/." ] && [ "$item" != "$reve_chores_mode/.." ]; then
-            if [ -x "$file" ]; then
-                echo "[reve] [I] Running chore: $( basename $file )"
-                bash "$file"
-            else
-                echo "[reve] [E] chores_mode: $file is not executable"
-            fi
+        if [ -x "$file" ]; then
+            echo "[reve] [I] Running chore: $( basename "$file" )"
+            bash "$file"
+        else
+            echo "[reve] [E] chores_mode: $file is not executable"
         fi
     done
 }
 
 main () {
-    if (( $rt_has_mode_changed == 1 )) || [[ "$reason" == "chores_mode" ]]; then
+    if (( rt_has_mode_changed == 1 )) || [[ "$in_reason" == "chores_mode" ]]; then
         chores_mode
     fi
 
@@ -127,7 +137,6 @@ while true; do
         -h|--help)
             util_help
             exit 0
-            shift
             ;;
         -m|--mode)
             in_desktop_mode="$2"
@@ -141,6 +150,16 @@ while true; do
             in_chore_name="$2"
             shift 2
             ;;
+        -w|--where)
+            which reve
+            exit 0
+            ;;
+        --shell-completion)
+            in_shell_comp="$2"
+            shift 2
+            f_shell_completion
+            exit 0
+            ;;
         --)
             shift
             break
@@ -152,7 +171,5 @@ while true; do
     esac
 done
 
-forced_mode=$in_desktop_mode
-reason=$in_reason
 prepare
 main
