@@ -7,17 +7,6 @@ in_desktop_mode=""
 in_reason=""
 in_chore_name=""
 
-SHORTOPTS="h,m:r:c:w,"
-LONGOPTS="help,mode:,reason:,chore:,where"
-
-PARSED_OPTS=$(getopt --options $SHORTOPTS --longoptions $LONGOPTS --name "$0" -- "$@")
-if [[ $? -ne 0 ]]; then
-    echo "Failed to parse options."
-    exit 1
-fi
-
-eval set -- "$PARSED_OPTS"
-
 rt_script_dir=$(realpath "$(dirname "$0")")
 rt_has_mode_changed=0
 
@@ -28,15 +17,40 @@ reve_time_night="$reve_folder/time_night"
 
 reve_chores_mode="$rt_script_dir/chores/mode"
 
-source "$rt_script_dir/_reve"
+# bring reve utility functions to the context
+# shellcheck disable=SC1091
+source "$rt_script_dir/_reve" >&/dev/null
+# shellcheck disable=SC1091
+(( $? == 1 )) && source "$rt_script_dir/_reve.sh" # looks like we're in dev environment
 
 util_help () {
-    echo "Usage: $0 [options]"
-    echo "Options:"
-    echo "desktop_mode  (-m, --mode):   dark, light"
-    echo "reason        (-r, --reason): time, network"
-    echo "chore         (-c, --chore):  chore_name"
-    echo "where         (-w, --where):  returns where reve's installed"
+    local command="$1"
+
+    case $command in
+        reve|'')
+            echo "=> Usage: reve [command] OR reve [subcommand] [command]"
+            echo "== Commands =="
+            echo "mode      {desktop_mode}    sets desktop mode, accepts 'dark' or 'light'"
+            echo "reason    {reason}          run reve with reason, accepts 'network' or 'time'"
+            echo "chore     {chore_name}      run a single chore, accepts chore name"
+            echo "where                       returns where reve's installed"
+            echo "help      [subcommand]      shows help message"
+            echo "== Subcommands =="
+            echo "1. config                   gets/sets configuration values"
+            echo "2. update                   updates chores"
+            ;;
+        config)
+            echo "=> Usage"
+            echo "1. reve config get {config_key}            get the value stored in file"
+            echo "2. reve config set {config_key} {value}    set the value of file"
+            ;;
+        update)
+            echo "=> Usage: reve update [chore names...]       updates chores from upstream"
+            echo "== Details =="
+            echo "Updates all chores present on your configuration if nothing is given. The" 
+            echo "chore names must be space delimited."
+            ;;
+    esac
 }
 
 util_mkdirs () {
@@ -132,44 +146,42 @@ main () {
     fi
 }
 
-while true; do
-    case "$1" in
-        -h|--help)
-            util_help
-            exit 0
-            ;;
-        -m|--mode)
-            in_desktop_mode="$2"
-            shift 2
-            ;;
-        -r|--reason)
-            in_reason="$2"
-            shift 2
-            ;;
-        -c|--chore)
-            in_chore_name="$2"
-            shift 2
-            ;;
-        -w|--where)
-            dirname "$( which reve )"
-            exit 0
-            ;;
-        --shell-completion)
-            in_shell_comp="$2"
-            shift 2
-            f_shell_completion
-            exit 0
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "Invalid option: $1"
-            exit 1
-            ;;
-    esac
-done
+case "$1" in
+    config)
+        sub_config
+        exit 0
+        ;;
+    update)
+        sub_update
+        exit 0
+        ;;
+    help)
+        util_help "$2"
+        exit 0
+        ;;
+    where)
+        dirname "$( which reve )"
+        exit 0
+        ;;
+    shell-completion)
+        in_shell_comp="$2"
+        f_shell_completion
+        exit 0
+        ;;
+    mode)
+        in_desktop_mode="$2"
+        ;;
+    reason)
+        in_reason="$2"
+        ;;
+    chore)
+        in_chore_name="$2"
+        ;;
+    *)
+        echo "Invalid command or subcommand: $1"
+        exit 1
+        ;;
+esac
 
 prepare
 main
