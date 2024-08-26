@@ -18,9 +18,8 @@ reve_time_night="$reve_folder/time_night"
 reve_chores_mode="$rt_script_dir/chores/mode"
 
 # bring reve utility functions to the context
-# shellcheck disable=SC1091
+# shellcheck source=_reve.sh
 source "$rt_script_dir/_reve" >&/dev/null
-# shellcheck disable=SC1091
 (( $? == 1 )) && source "$rt_script_dir/_reve.sh" # looks like we're in dev environment
 
 util_help () {
@@ -43,6 +42,7 @@ util_help () {
             echo "=> Usage"
             echo "1. reve config get {config_key}            get the value stored in file"
             echo "2. reve config set {config_key} {value}    set the value of file"
+            echo "3. reve config rm  {config_key}            delete the config file"
             ;;
         update)
             echo "=> Usage: reve update [chore names...]       updates chores from upstream"
@@ -136,6 +136,27 @@ chores_mode () {
     done
 }
 
+sub_config () {
+    local config_key=$2
+    case "$1" in
+        get)
+            util_read_config "$config_key"
+            ;;
+        set)
+            util_write_config "$config_key" "$3"
+            ;;
+        rm|delete)
+            util_delete_config "$config_key"
+            ;;
+        "")
+            util_help config
+            ;;
+        *)
+            echo "[reve] [E] in subcommand config: '$1' is not a valid command"
+            ;;
+    esac
+}
+
 main () {
     if (( rt_has_mode_changed == 1 )) || [[ "$in_reason" == "chores_mode" ]]; then
         chores_mode
@@ -148,7 +169,7 @@ main () {
 
 case "$1" in
     config)
-        sub_config
+        sub_config $2 $3 $4
         exit 0
         ;;
     update)
