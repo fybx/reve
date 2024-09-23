@@ -33,6 +33,7 @@ util_help () {
             echo "reason    {reason}          run reve with reason, accepts 'network' or 'time'"
             echo "chore     {chore_name}      run a single chore, accepts chore name"
             echo "where                       returns where reve's installed"
+            echo "poll                        runs reve to update desktop_mode & power_mode, and do chores"
             echo "help      [subcommand]      shows help message"
             echo "== Subcommands =="
             echo "1. config                   gets/sets configuration values"
@@ -55,16 +56,6 @@ util_help () {
 
 util_mkdirs () {
     mkdir -p "$reve_folder"
-}
-
-util_run_single_chore () {
-    local chore_fullname="$reve_chores_mode/$1"
-    if [ -x "$chore_fullname.sh" ]; then
-        echo "[reve] [I] Running single chore: $chore_fullname"
-        bash "$chore_fullname.sh"
-    else
-        echo "[reve] [E] util_run_single_chore: $chore_fullname is not executable"
-    fi
 }
 
 f_shell_completion () {
@@ -122,6 +113,7 @@ prepare () {
     util_mkdirs
     set_desktop_mode
     rt_has_mode_changed="$?"
+    echo $rt_has_mode_changed
 }
 
 # Called when the mode (the default state, is either dark or light) changes
@@ -134,6 +126,21 @@ chores_mode () {
             echo "[reve] [E] chores_mode: $file is not executable"
         fi
     done
+}
+
+util_handle_pos () {
+    local forced_mode
+    for arg in "$@"; do
+        if [[ "$arg" == "-d" || "$arg" == "--dark" ]]; then
+            forced_mode="dark"
+        elif [[ "$arg" == "-l" || "$arg" == "--light" ]]; then
+            forced_mode="light"
+        fi
+    done
+
+    if [[ $( util_read_config base.desktop_mode ) != "$forced_mode" ]]; then
+        util_write_config "$forced_mode"
+    fi
 }
 
 sub_config () {
@@ -163,13 +170,13 @@ main () {
     fi
 
     if [[ "$in_chore_name" != "" ]]; then
-        util_run_single_chore "$in_chore_name"
+        util_run_chore "$in_chore_name"
     fi
 }
 
 case "$1" in
     config)
-        sub_config $2 $3 $4
+        sub_config "$2" "$3" "$4"
         exit 0
         ;;
     update)
@@ -196,7 +203,16 @@ case "$1" in
         in_reason="$2"
         ;;
     chore)
-        in_chore_name="$2"
+        util_handle_pos "$@"   
+        util_run_chore "$2"
+        util_toggle_dm
+        exit 0
+        ;;
+    poll)
+        ;;
+    "")
+        util_help "$2"
+        exit 0
         ;;
     *)
         echo "Invalid command or subcommand: $1"
@@ -204,5 +220,5 @@ case "$1" in
         ;;
 esac
 
-prepare
+prepare "$@"
 main
