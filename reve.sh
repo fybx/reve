@@ -85,26 +85,26 @@ f_shell_completion() {
 }
 
 set_desktop_mode() {
-  if [[ -n "$in_desktop_mode" ]]; then
-    echo "$in_desktop_mode" >"$reve_desktop_mode"
-    return 1 # since mode has changed
-  fi
-
   local previous_mode num_day num_night current_time
   previous_mode=$(util_read_config base.desktop_mode)
-  num_day=$(awk -F: '{print $1 * 60 + $2}' <<<"$(util_read_config base.time_day)")
-  num_night=$(awk -F: '{print $1 * 60 + $2}' <<<"$(util_read_config base.time_night)")
-  current_time=$(awk -F: '{print $1 * 60 + $2}' <<<"$(date +%H:%M)")
 
-  if ((num_night > current_time && current_time >= num_day)); then
-    rt_current_mode="light"
+  if [[ -n "$in_desktop_mode" ]]; then
+    rt_current_mode="$in_desktop_mode"
+    echo "$in_desktop_mode" >"$reve_desktop_mode"
   else
-    rt_current_mode="dark"
+    num_day=$(awk -F: '{print $1 * 60 + $2}' <<<"$(util_read_config base.time_day)")
+    num_night=$(awk -F: '{print $1 * 60 + $2}' <<<"$(util_read_config base.time_night)")
+    current_time=$(awk -F: '{print $1 * 60 + $2}' <<<"$(date +%H:%M)")
+
+    if ((num_night > current_time && current_time >= num_day)); then
+      rt_current_mode="light"
+    else
+      rt_current_mode="dark"
+    fi
+    echo "$rt_current_mode" >"$reve_desktop_mode"
   fi
 
   echo "[reve] [I] Setting the mode: $rt_current_mode"
-  echo "$rt_current_mode" >"$reve_desktop_mode"
-
   if [ "$rt_current_mode" == "$previous_mode" ]; then
     return 0 # since mode did not change
   else
@@ -115,12 +115,7 @@ set_desktop_mode() {
 # Called when the mode (the default state, is either dark or light) changes
 chores_mode() {
   for file in "$reve_chores_mode"/*; do
-    if [ -x "$file" ]; then
-      echo "[reve] [I] Running chore: $(basename "$file")"
-      util_run_chore "$file" $rt_current_mode
-    else
-      echo "[reve] [E] chores_mode: $file is not executable"
-    fi
+    util_run_chore "mode/$(basename "${file%.sh}")" $rt_current_mode
   done
 }
 
