@@ -15,9 +15,7 @@ if ! command -v swww &>/dev/null; then
   exit 1
 fi
 
-bg_dark="$REVE_FOLDER/chore/bg_dark"
-bg_light="$REVE_FOLDER/chore/bg_light"
-
+# shellcheck source=../../_reve.sh
 source "$(reve where)/_reve"
 
 types=("left" "right" "top" "bottom" "wipe" "wave" "grow" "outer")
@@ -25,12 +23,7 @@ ltypes=${#types[@]}
 rindex=$((RANDOM % ltypes))
 rtype=${types[rindex]}
 
-if [[ $RV_CURRENT_MODE == "dark" ]]; then
-  swww img --transition-type "$rtype" --transition-pos 1,1 --transition-step 90 "$bg_dark"
-  notify-send --urgency=low --expire-time=1450 --icon="$bg_dark" --app-name="reve: swww_single" "Wallpaper changed" "Wallpaper changed and saved on dark mode."
-else
-  swww img --transition-type "$rtype" --transition-pos 1,1 --transition-step 90 "$bg_light"
-  notify-send --urgency=low --expire-time=1450 --icon="$bg_light" --app-name="reve: swww_single" "Wallpaper changed" "Wallpaper changed and saved on light mode."
-fi
-
+bg="$(util_where_config chore."bg_$RV_CURRENT_MODE")"
+swww img --transition-type "$rtype" --transition-pos 1,1 --transition-step 90 "$bg"
+notify-send --urgency=low --expire-time=1450 --icon="$bg" --app-name="reve: swww_single" "Wallpaper changed" "Wallpaper changed and saved on light mode."
 reload misc/asus_kbd_light.sh
