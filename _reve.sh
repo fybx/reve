@@ -51,8 +51,8 @@ util_delete_config() {
 util_run_chore() {
   local chore_path="$reve_installation/chores/$1"
   if [ -x "$chore_path.sh" ]; then
-    error I "util_run_chore" "Running single chore: $(basename "$1")"
-    bash "$chore_path.sh"
+    error I "util_run_chore" "Running chore: $(basename "$1")"
+    REVE_FOLDER="$reve_config" RV_CURRENT_MODE=$2 bash "$chore_path.sh"
   else
     error E "util_run_chore" "$chore_path is not executable"
   fi
