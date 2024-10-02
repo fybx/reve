@@ -17,4 +17,4 @@ if ! command -v kitty &>/dev/null; then
   exit 1
 fi
 
-kitten themes --reload-in=all "$(util_read_config chore.kitty."$RV_CURRENT_THEME")"
+kitten themes --reload-in=all "$(util_read_config chore.kitty."$RV_CURRENT_MODE")"
