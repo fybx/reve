@@ -1,18 +1,18 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # reve                              desktop environment framework
 # Yigid BALABAN <fyb@fybx.dev>                               2024
 
 # chore script
-# type  mode
-# name  chore_script.sh
-# desc  ...
-# vars  ...
+# type      mode
+# name      chore_script.sh
+# desc      ...
+# vars      ...
+# reload    ...
 
-reve_folder="$HOME/.config/reve"
-reve_desktop_mode="$reve_folder/desktop_mode"
+# shellcheck source=../_reve.sh
+source "$(reve where)/_reve"
 
-source "$( reve -w )/_reve"
+echo "Hello, world! Current mode is $RV_CURRENT_MODE."
 
-current_mode=$( util_readf "$reve_desktop_mode" )
-echo "Hello, world! Current mode is $current_mode."
+reload mode/gtk_theme
