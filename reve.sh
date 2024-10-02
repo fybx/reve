@@ -36,22 +36,34 @@ util_help() {
     echo "chore     {chore_name}      run a single chore, accepts chore name"
     echo "where                       returns where reve's installed"
     echo "poll                        runs reve to update desktop_mode & power_mode, and do chores"
-    echo "help      [subcommand]      shows help message"
+    echo "help      [subcomma{nd]      shows help message"
     echo "== Subcommands =="
     echo "1. config                   gets/sets configuration values"
     echo "2. update                   updates chores"
+    echo "3. chores                   manages installed chores"
     ;;
   config)
     echo "=> Usage"
-    echo "1. reve config get {config_key}            get the value stored in file"
-    echo "2. reve config set {config_key} {value}    set the value of file"
-    echo "3. reve config rm  {config_key}            delete the config file"
+    echo "1. reve config get {config_key}             get the value stored in file"
+    echo "2. reve config set {config_key} {value}     set the value of file"
+    echo "3. reve config rm  {config_key}             delete the config file"
     ;;
   update)
-    echo "=> Usage: reve update [chore names...]       updates chores from upstream"
+    echo "=> Usage: reve update [chore names...]      updates chores from upstream"
     echo "== Details =="
-    echo "Updates all chores present on your configuration if nothing is given. The"
-    echo "chore names must be space delimited."
+    echo "Updates all chores present on your installation if nothing is given."
+    echo "The chore names must be space delimited."
+    ;;
+  chores)
+    echo "=> Usage"
+    echo "1. reve chores list                         lists all installed chores"
+    echo "2. reve chores add {chore_name}             adds chore_name from .reve_repo"
+    echo "3. reve chores rm  {chore_name}             removes chore_name from installation"
+    echo "4. reve chores more                         lists chores available for installation"
+    echo "== Details =="
+    echo "'chore_name' must be a valid chore name like 'mode/gtk_theme', 'misc/foo'."
+    echo "The file extension (.sh) must be discarded."
+    echo "'.reve_repo' is managed by reve, and it's located in '\$reve_installation'."
     ;;
   esac
 }
@@ -126,6 +138,95 @@ util_handle_pos() {
   echo $forced_mode
 }
 
+f_get_available_chores() {
+  c_ins=0
+  c_ble=0
+
+  while IFS= read -r file; do
+    file=${file#"$reve_installation/.reve_repo/chores/"} && file=${file%.sh}
+    if [ -f "$reve_installation/chores/$file.sh" ]; then
+      echo "☑ $file"
+      ((c_ins++))
+    else
+      echo "☐ $file"
+      ((c_ble++))
+    fi
+  done < <(find "$reve_installation/.reve_repo/chores" -type f -name "*.sh")
+
+  error I f_get_available_chores "$c_ins installed, $c_ble available"
+}
+
+f_add_chore() {
+  # args: $1 -- chore_name
+  # returns: 1 if error, otherwise 0
+  src_file="$reve_installation/.reve_repo/chores/$1.sh"
+  if [ -f "$src_file" ]; then
+    cp "$src_file" "$reve_installation/chores/$1.sh"
+  else
+    error E f_add_chore "there's no chore named '$1' in upstream"
+    return 1
+  fi
+  return 0
+}
+
+f_rm_chore() {
+  # args: $1 -- chore_name
+  # returns: 1 if error, otherwise 0
+  target_file="$reve_installation/chores/$1.sh"
+  if [ -f "$target_file" ]; then
+    rm "$target_file"
+  else
+    error E f_rm_chore "there's no chore named '$1' in installation"
+    return 1
+  fi
+  return 0
+}
+
+sub_chores() {
+  case $1 in
+  list)
+    echo "installed chores:"
+    find "$reve_installation/chores/" -type f -name "*.sh" | while read -r file; do
+      echo "$file" | awk -F/ '{print " -> "$(NF-1)"/"$NF}'
+    done
+    ;;
+  more) f_get_available_chores ;;
+  add) f_add_chore $2 ;;
+  rm) f_rm_chore $2 ;;
+  esac
+}
+
+sub_update() {
+  local repo_dir="$reve_installation/.reve_repo"
+  local repo_url="https://git.fybx.dev/fyb/reve.git"
+
+  if [ ! -d "$repo_dir/.git" ]; then
+    error I reve "in sub_update, cloning repository"
+    git clone "$repo_url" "$repo_dir" &>/dev/null
+  else
+    error I reve "in sub_update, pulling changes"
+    git -C "$repo_dir" pull &>/dev/null
+  fi
+
+  if [ $# -eq 0 ]; then
+    error I sub_update "updating all chores"
+    count=0
+    find "$reve_installation/chores/" -type f -name "*.sh" | while read -r file; do
+      file="${file#"$reve_installation/chores/"}"
+      file="${file%".sh"}"
+      echo $file
+      # shellcheck disable=SC2030
+      f_add_chore "$file" && ((count++))
+    done
+    # shellcheck disable=SC2031
+    ((count != 0)) && error I sub_update "copied $count files"
+  else
+    for arg in "$@"; do
+      f_add_chore "$arg"
+    done
+  fi
+}
+
 sub_config() {
   case "$1" in
   get)
@@ -168,7 +269,11 @@ config)
   exit 0
   ;;
 update)
-  sub_update
+  sub_update "${@:2}"
+  exit 0
+  ;;
+chores)
+  sub_chores "$2" "$3"
   exit 0
   ;;
 help)
