@@ -144,16 +144,15 @@ util_handle_pos () {
 }
 
 sub_config () {
-    local config_key=$2
     case "$1" in
         get)
-            util_read_config "$config_key"
+            util_read_config "$2"
             ;;
         set)
-            util_write_config "$config_key" "$3"
+            util_write_config "$2" "$3"
             ;;
         rm|delete)
-            util_delete_config "$config_key"
+            util_delete_config "$2"
             ;;
         "")
             util_help config
