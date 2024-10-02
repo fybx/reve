@@ -36,7 +36,7 @@ util_help() {
     echo "chore     {chore_name}      run a single chore, accepts chore name"
     echo "where                       returns where reve's installed"
     echo "poll                        runs reve to update desktop_mode & power_mode, and do chores"
-    echo "help      [subcomma{nd]      shows help message"
+    echo "help      [subcommand]      shows help message"
     echo "== Subcommands =="
     echo "1. config                   gets/sets configuration values"
     echo "2. update                   updates chores"
