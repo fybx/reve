@@ -284,6 +284,11 @@ shell-completion)
   f_shell_completion
   exit 0
   ;;
+state)
+  if [ "$2" == "clean" ]; then
+    util_deleteall_temp
+  fi
+  ;;
 mode)
   in_desktop_mode="$2"
   ;;

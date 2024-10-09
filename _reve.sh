@@ -7,16 +7,13 @@
 reve_installation="$HOME/.local/bin/reve"
 reve_config="$HOME/.config/reve"
 
-util_readf() {
-  local filename=$1
-
-  if [[ -f "$filename" ]]; then
-    cat "$filename"
-  else
-    error E "util_readf" "File not found: $filename"
-    return 1
-  fi
-}
+_current_dir=$(realpath "$(dirname "$0")")
+# shellcheck source=_reve_states.sh
+source "$_current_dir/_reve_states" >&/dev/null
+(($? == 1)) && source "$_current_dir/_reve_states.sh"
+# shellcheck source=_reve_utils.sh
+source "$_current_dir/_reve_utils" >&/dev/null
+(($? == 1)) && source "$_current_dir/_reve_utils.sh"
 
 util_where_config() {
   local config_key=$1
@@ -82,12 +79,4 @@ util_toggle_dm() {
   else
     util_write_config base.desktop_mode dark
   fi
-}
-
-error() {
-  local level=$1 location=$2 cause=$3
-  message="[reve] [$level] [$location] $cause"
-  echo "$message"
-  now=$(date -Iminutes)
-  echo "${now::-6} $message" >>"$reve_installation/reve.log"
 }
