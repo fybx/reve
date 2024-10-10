@@ -7,7 +7,7 @@
 reve_installation="$HOME/.local/bin/reve"
 reve_config="$HOME/.config/reve"
 
-_current_dir=$(realpath "$(dirname "$0")")
+_current_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 # shellcheck source=_reve_states.sh
 source "$_current_dir/_reve_states" >&/dev/null
 (($? == 1)) && source "$_current_dir/_reve_states.sh"
@@ -66,7 +66,7 @@ util_run_utility() {
 }
 
 reload() {
-  util_run_chore "$1"
+  util_run_chore "$1" "$2"
 }
 
 reload_util() {

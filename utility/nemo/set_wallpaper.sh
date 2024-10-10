@@ -26,4 +26,4 @@ else
   cp -T "$first" "$bgl"
 fi
 
-reload mode/swww_single
+reload mode/swww_single $mode

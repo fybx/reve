@@ -6,7 +6,7 @@
 # reve internal: _reve_states
 # defines state management API
 
-_current_dir=$(realpath "$(dirname "$0")")
+_current_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 # shellcheck source=_reve_utils.sh
 source "$_current_dir/_reve_utils" >&/dev/null
 (($? == 1)) && source "$_current_dir/_reve_utils.sh"

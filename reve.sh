@@ -10,7 +10,7 @@ in_desktop_mode=""
 in_reason=""
 in_chore_name=""
 
-rt_script_dir=$(realpath "$(dirname "$0")")
+rt_script_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 rt_has_mode_changed=0
 rt_current_mode="unset"
 
