@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # reve                              desktop environment framework
 # Yigid BALABAN <fyb@fybx.dev>                               2024
@@ -23,7 +23,8 @@ ltypes=${#types[@]}
 rindex=$((RANDOM % ltypes))
 rtype=${types[rindex]}
 
-bg="$(util_where_config chore."bg_$RV_CURRENT_MODE")"
+bg="$(util_read_config chore."bg_$RV_CURRENT_MODE")"
 swww img --transition-type "$rtype" --transition-pos 1,1 --transition-step 90 "$bg"
-notify-send --urgency=low --expire-time=1450 --icon="$bg" --app-name="reve: swww_single" "Wallpaper changed" "Wallpaper changed and saved on light mode."
+notify-send --urgency=low --expire-time=1450 --icon="$bg" --app-name="reve: swww_single" "Wallpaper changed" "Wallpaper changed and saved on $RV_CURRENT_MODE mode."
+cp "$bg" "$(util_where_config chore.current_bg)"
 reload misc/asus_kbd_light.sh
