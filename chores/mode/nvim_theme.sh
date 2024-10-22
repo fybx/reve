@@ -10,6 +10,11 @@
 # vars      none
 # reload    none
 
-if pids=$(pgrep -fx 'nvim'); then
+handle_usr1() {
+  return
+}
+trap handle_usr1 USR1
+
+if pids=$(pgrep -f 'nvim'); then
   echo "$pids" | xargs kill -USR1
 fi
